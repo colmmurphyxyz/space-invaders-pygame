@@ -8,9 +8,9 @@ black = (0, 0, 0)
 
 screen = pygame.display.set_mode(size)
 
-ball = pygame.image.load("intro_ball.gif")
-ballpos = 160
-ballchange = 0
+ship = pygame.image.load("sprite_ship.png")
+shippos = 160
+shipchange = 0
 
 while True:
     for event in pygame.event.get():
@@ -18,16 +18,16 @@ while True:
             sys.exit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                ballchange -= 1
+                shipchange -= 1
             if event.key == pygame.K_RIGHT:
-                ballchange += 1
+                shipchange += 1
         if event.type == pygame.KEYUP:
-            ballchange = 0
+            shipchange = 0
 
-    if ballpos + ballchange in range(0, width - 100):
-        ballpos += ballchange
+    if shippos + shipchange in range(0, width - ship.get_width()):
+        shippos += shipchange
         screen.fill(black)
-        screen.blit(ball, (ballpos, 120))
+        screen.blit(ship, (shippos, height - ship.get_height() - 10))
 
     pygame.display.flip()
 
