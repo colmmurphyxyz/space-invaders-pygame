@@ -1,6 +1,7 @@
 # Colm Murphy
 # Student no. 121356486
 # sprites taken from https://opengameart.org/content/pixel-space-invaders
+# font taken from https://www.1001fonts.com/joystix-font.html
 
 import sys
 import pygame
@@ -109,11 +110,18 @@ class Game(object):
                 if self._player_bullet is not None and self._player_bullet.collides_with(alien):
                     self._aliens.remove(alien)
                     self._player_bullet = None
+                    # if no aliens are left, the player wins
                     if len(self._aliens) == 0:
                         self._player_win()
                     continue
+                # if an alien is colliding with the ship, or if the alien is at the bottom of the screen, game over
+                if alien.collides_with(self._ship_model) or\
+                        alien.y > (self._screen.get_height() - self._alien_view.get_height()):
+                    self._game_over()
+                # if an alien is at the edge of the screen
                 if alien.x not in range(5, self._screen.get_width() - self._alien_view.get_width()):
                     move_aliens_down = True
+            # if any alien is at the edge of the screen, move all aliens down and change their direction
             if move_aliens_down:
                 for alien in self._aliens:
                     alien.move_down(self._alien_view.get_height() // 8)
@@ -135,11 +143,26 @@ class Game(object):
             # render
             pygame.display.flip()
 
+    # code from https://www.geeksforgeeks.org/python-display-text-to-pygame-window/
+    def _show_end_screen(self, message: str):
+        self._screen.fill(self._colors["black"])
+        font = pygame.font.Font("joystix_monospace.ttf", 64)
+        text = font.render("You Win!", True, self._colors["white"])
+        text_rect = text.get_rect()
+        text_rect.center = (self._screen.get_width() // 2, self._screen.get_height() // 2)
+        while True:
+            self._screen.fill(self._colors["black"])
+            self._screen.blit(text, text_rect)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
+            pygame.display.flip()
+
     def _player_win(self):
-        raise NotImplementedError()
+        self._show_end_screen("You Win!")
 
     def _game_over(self):
-        raise NotImplementedError()
+        self._show_end_screen("Game Over :(")
 
 
 class BulletState(GameObjectState):
@@ -193,6 +216,7 @@ class ShipState(GameObjectState):
 
 
 def main():
+    pygame.init()
     game: Game = Game(640, 480)
     game.run_game()
 
