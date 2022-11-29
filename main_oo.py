@@ -1,6 +1,47 @@
+# Colm Murphy
+# Student no. 121356486
+# sprites taken from https://opengameart.org/content/pixel-space-invaders
+
 import sys
 import pygame
 from typing import Optional
+
+
+class GameObjectState(object):
+    def __init__(self, xpos, ypos, width, height):
+        self._x = xpos
+        self._y = ypos
+        self._width = width
+        self._height = height
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def width(self):
+        return self._width
+
+    @property
+    def height(self):
+        return self._height
+
+    @property
+    def coords(self):
+        return self._x, self._y
+
+    def collides_with(self, other: "GameObjectState") -> bool:
+        """Returns True if two game objects are overlapping each other"""
+        if (self.x < other.x + other.width and
+                self.x + self.width > other.x and
+                self.y < other.y + other.height and
+                self.height + self.y > other.y):
+            return True
+        return False
 
 
 class Game(object):
@@ -15,12 +56,17 @@ class Game(object):
         # load the ship
         self._ship_view = pygame.image.load("sprite_ship.png")
         self._ship_model = ShipState(self._width // 2, self._height - self._ship_view.get_height(),
-                                     self._width - self._ship_view.get_width())
+                                     self._width - self._ship_view.get_width(),
+                                     self._ship_view.get_width(), self._ship_view.get_height())
         # load the aliens
+        self._alien_view = pygame.image.load("sprite_alien.png")
         self._aliens: list[AlienState] = []
-        for row in range(5):
-            for column in range(10):
-                pass
+        for row in range(4):
+            for column in range(8):
+                self._aliens.append((
+                    AlienState(10 + (column * 45), 60 + (row * 45), 1,
+                               self._alien_view.get_width(), self._alien_view.get_height())
+                ))
 
         # player bullet logic
         self._player_bullet_view = pygame.image.load("sprite_player_bullet.png")
@@ -47,13 +93,32 @@ class Game(object):
                             self._player_bullet = BulletState(
                                 self._ship_model.x + self._ship_view.get_width() // 2
                                 - self._player_bullet_view.get_width() // 2,
-                                self._ship_model.y - self._player_bullet_view.get_height()
+                                self._ship_model.y - self._player_bullet_view.get_height(),
+                                self._player_bullet_view.get_width(),
+                                self._player_bullet_view.get_height()
                             )
                 if event.type == pygame.KEYUP:
                     self._ship_model.ship_change = 0
 
             self._screen.fill(self._colors["black"])
-            self._ship_model.handle_move()
+            # update the alien positions move them down if necessary
+            move_aliens_down = False
+            for alien in self._aliens:
+                alien.handle_move()
+                # if bullet in contact with alien
+                if self._player_bullet is not None and self._player_bullet.collides_with(alien):
+                    self._aliens.remove(alien)
+                    self._player_bullet = None
+                    if len(self._aliens) == 0:
+                        self._player_win()
+                    continue
+                if alien.x not in range(5, self._screen.get_width() - self._alien_view.get_width()):
+                    move_aliens_down = True
+            if move_aliens_down:
+                for alien in self._aliens:
+                    alien.move_down(self._alien_view.get_height() // 8)
+                    alien.change_direction()
+                    alien.handle_move()
             # update bullet position, remove them if they are off screen, then draw them to the screen
             if self._player_bullet is not None:
                 self._player_bullet.handle_move()
@@ -61,51 +126,53 @@ class Game(object):
                 if self._player_bullet.y < -self._player_bullet_view.get_height():
                     self._player_bullet = None
             # draw the ship
+            self._ship_model.handle_move()
             self._screen.blit(self._ship_view, self._ship_model.coords)
+            # draw the aliens
+            for alien in self._aliens:
+                self._screen.blit(self._alien_view, alien.coords)
+
+            # render
             pygame.display.flip()
 
+    def _player_win(self):
+        raise NotImplementedError()
 
-class GameObjectState(object):
-    def __init__(self, xpos: int, ypos: int):
-        self._x = xpos
-        self._y = ypos
-
-    @property
-    def x(self):
-        return self._x
-
-    @property
-    def y(self):
-        return self._y
-
-    @property
-    def coords(self):
-        return self._x, self._y
+    def _game_over(self):
+        raise NotImplementedError()
 
 
 class BulletState(GameObjectState):
-    def __init__(self, xpos: int, ypos: int):
-        super().__init__(xpos, ypos)
+    def __init__(self, xpos: int, ypos: int, width: int, height: int):
+        super().__init__(xpos, ypos, width, height)
 
     def handle_move(self):
-        self._y -= 0.2
+        self._y -= 0.4
 
 
 class AlienState(GameObjectState):
-    def __init__(self, xpos: int, ypos: int, speed: int):
-        super().__init__(xpos, ypos)
+    def __init__(self, xpos: int, ypos: int, speed, width: int, height: int):
+        super().__init__(xpos, ypos, width, height)
         self._xchange = speed
+        # we only want to update the alien's position every 10 frames
+        self._frame_counter = 0
 
     def handle_move(self):
-        self._x += self._xchange
+        if self._frame_counter == 9:
+            self._x += self._xchange
+        self._frame_counter += 1
+        self._frame_counter %= 10
 
     def change_direction(self):
         self._xchange = self._xchange * -1
 
+    def move_down(self, ychange: int):
+        self._y += ychange
+
 
 class ShipState(GameObjectState):
-    def __init__(self, xpos: int, ypos: int, max_x_pos: int):
-        super().__init__(xpos, ypos)
+    def __init__(self, xpos: int, ypos: int, max_x_pos: int, width: int, height: int):
+        super().__init__(xpos, ypos, width, height)
         self.max_x: int = max_x_pos
         self.ship_change: int = 0
 
