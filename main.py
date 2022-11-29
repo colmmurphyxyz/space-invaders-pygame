@@ -146,7 +146,7 @@ class Game(object):
                     move_aliens_down = True
                 # sometimes, an alien will fire a bullet at the player
                 # the aliens are kind, they will only have at most 6 bullets in the air at any time
-                if random() < 0.00004 and len(self._alien_bullets) < 7:
+                if random() < 0.00004 and len(self._alien_bullets) < 6:
                     self._alien_bullets.append(BulletState(
                         alien.x, alien.y, self._alien_bullet_view.get_width(), self._alien_bullet_view.get_height(), 0.3
                     ))
