@@ -62,11 +62,14 @@ class Game(object):
         # load the aliens
         self._alien_view = pygame.image.load("sprite_alien.png")
         self._aliens: list[AlienState] = []
+        # aliens that spawn further from the player will award more points when killed
         for row in range(4):
             for column in range(8):
+                points_on_kill = (4 - row) * 10
                 self._aliens.append((
                     AlienState(10 + (column * 45), 60 + (row * 45), 1,
-                               self._alien_view.get_width(), self._alien_view.get_height())
+                               self._alien_view.get_width(), self._alien_view.get_height(),
+                               points_on_kill=points_on_kill)
                 ))
 
         # player bullet logic
@@ -75,6 +78,11 @@ class Game(object):
         # alien bullet logic
         self._alien_bullet_view = pygame.image.load("sprite_alien_bullet.png")
         self._alien_bullets: list[BulletState] = []
+
+        # score
+        self._score = 0
+        # load font
+        self._font = pygame.font.Font("joystix_monospace.ttf", 28)
 
     def run_game(self):
         while True:
@@ -108,8 +116,14 @@ class Game(object):
                 alien.handle_move()
                 # if bullet in contact with alien
                 if self._player_bullet is not None and self._player_bullet.collides_with(alien):
+                    # remove the alien hit, delete the bullet that hit it, and award points to the player
+                    # player will get more points if the alien is far away from the ship
                     self._aliens.remove(alien)
                     self._player_bullet = None
+                    points = (self._screen.get_height() - alien.y) // 10
+                    # round down to the nearest 10
+                    points = (points // 10) * 10
+                    self._score += alien.points_on_kill + points
                     # if no aliens are left, the player wins
                     if len(self._aliens) == 0:
                         self._player_win()
@@ -139,23 +153,43 @@ class Game(object):
             # draw the aliens
             for alien in self._aliens:
                 self._screen.blit(self._alien_view, alien.coords)
-
+            # draw the score at the stop of the screen
+            message = f"SCORE: {self._score}"
+            text = self._font.render(message, True, self._colors["white"])
+            text_rect = text.get_rect()
+            text_rect.center = (text_rect.width // 2, text_rect.height // 2)
+            self._screen.blit(text, text_rect)
             # render
             pygame.display.flip()
 
     # code from https://www.geeksforgeeks.org/python-display-text-to-pygame-window/
     def _show_end_screen(self, message: str):
         self._screen.fill(self._colors["black"])
-        font = pygame.font.Font("joystix_monospace.ttf", 64)
-        text = font.render("You Win!", True, self._colors["white"])
+        font_large = pygame.font.Font("joystix_monospace.ttf", 64)
+        text = font_large.render(message, True, self._colors["white"])
         text_rect = text.get_rect()
+        # place text on the center of the screen
         text_rect.center = (self._screen.get_width() // 2, self._screen.get_height() // 2)
+        # render final score
+        score = f"Final score: {self._score}"
+        score_text = self._font.render(score, True, self._colors["white"])
+        score_text_rect = score_text.get_rect()
+        score_text_rect.center = (self._screen.get_width() // 2, self._screen.get_height() // 2 + 48)
+        # (press any key to play again)
+        play_again = self._font.render("press any key to play again", True, self._colors["white"])
+        play_again_rect = play_again.get_rect()
+        play_again_rect.center = (self._screen.get_width() // 2, (self._screen.get_height() // 2) + 80)
         while True:
             self._screen.fill(self._colors["black"])
             self._screen.blit(text, text_rect)
+            self._screen.blit(score_text, score_text_rect)
+            self._screen.blit(play_again, play_again_rect)
+            # wait for user to exit the game
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    main()
             pygame.display.flip()
 
     def _player_win(self):
@@ -174,9 +208,11 @@ class BulletState(GameObjectState):
 
 
 class AlienState(GameObjectState):
-    def __init__(self, xpos: int, ypos: int, speed, width: int, height: int):
+    def __init__(self, xpos: int, ypos: int, speed, width: int, height: int, points_on_kill: int):
         super().__init__(xpos, ypos, width, height)
         self._xchange = speed
+        # amount of points to give the player when this alien is killed
+        self.points_on_kill = points_on_kill
         # we only want to update the alien's position every 10 frames
         self._frame_counter = 0
 
