@@ -12,13 +12,22 @@ class Game(object):
         }
 
         self._screen = pygame.display.set_mode(self._size)
+        # load the ship
         self._ship_view = pygame.image.load("sprite_ship.png")
-        self._player_bullet_view = pygame.image.load("sprite_player_bullet.png")
-        self._alien_bullet_view = pygame.image.load("sprite_alien_bullet.png")
-        self._player_bullet: Optional[BulletState] = None
-        self._alien_bullets: list[BulletState] = []
         self._ship_model = ShipState(self._width // 2, self._height - self._ship_view.get_height(),
                                      self._width - self._ship_view.get_width())
+        # load the aliens
+        self._aliens: list[AlienState] = []
+        for row in range(5):
+            for column in range(10):
+                pass
+
+        # player bullet logic
+        self._player_bullet_view = pygame.image.load("sprite_player_bullet.png")
+        self._player_bullet: Optional[BulletState] = None
+        # alien bullet logic
+        self._alien_bullet_view = pygame.image.load("sprite_alien_bullet.png")
+        self._alien_bullets: list[BulletState] = []
 
     def run_game(self):
         while True:
@@ -56,45 +65,49 @@ class Game(object):
             pygame.display.flip()
 
 
-class BulletState(object):
+class GameObjectState(object):
     def __init__(self, xpos: int, ypos: int):
         self._x = xpos
         self._y = ypos
 
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def coords(self):
+        return self._x, self._y
+
+
+class BulletState(GameObjectState):
+    def __init__(self, xpos: int, ypos: int):
+        super().__init__(xpos, ypos)
+
     def handle_move(self):
         self._y -= 0.2
 
-    @property
-    def x(self):
-        return self._x
 
-    @property
-    def y(self):
-        return self._y
+class AlienState(GameObjectState):
+    def __init__(self, xpos: int, ypos: int, speed: int):
+        super().__init__(xpos, ypos)
+        self._xchange = speed
 
-    @property
-    def coords(self):
-        return self._x, self._y
+    def handle_move(self):
+        self._x += self._xchange
+
+    def change_direction(self):
+        self._xchange = self._xchange * -1
 
 
-class ShipState(object):
+class ShipState(GameObjectState):
     def __init__(self, xpos: int, ypos: int, max_x_pos: int):
-        self._x: int = xpos
-        self._y: int = ypos
+        super().__init__(xpos, ypos)
         self.max_x: int = max_x_pos
         self.ship_change: int = 0
-
-    @property
-    def x(self):
-        return self._x
-
-    @property
-    def y(self):
-        return self._y
-
-    @property
-    def coords(self):
-        return self._x, self._y
 
     def handle_move(self):
         if self._x + self.ship_change in range(0, self.max_x):
