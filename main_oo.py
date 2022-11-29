@@ -2,11 +2,12 @@
 # Student no. 121356486
 # sprites taken from https://opengameart.org/content/pixel-space-invaders
 # font taken from https://www.1001fonts.com/joystix-font.html
-
+import datetime
 import sys
 import pygame
 from typing import Optional
 from random import random
+import time
 
 
 class GameObjectState(object):
@@ -86,7 +87,9 @@ class Game(object):
         self._font = pygame.font.Font("joystix_monospace.ttf", 28)
 
     def run_game(self):
+        fps_interval: float = 1000.0 / 750.0
         while True:
+            then = pygame.time.get_ticks()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit(0)
@@ -111,6 +114,9 @@ class Game(object):
                             )
                 if event.type == pygame.KEYUP:
                     self._ship_model.ship_change = 0
+            elapsed_time_ms: float = pygame.time.get_ticks() - then
+            if elapsed_time_ms < fps_interval:
+                pygame.time.delay(int(fps_interval - elapsed_time_ms))
 
             self._screen.fill(self._colors["black"])
             # update the alien positions move them down if necessary
@@ -272,6 +278,11 @@ class ShipState(GameObjectState):
 
 def main():
     pygame.init()
+    pygame.display.set_caption("Space Invaders")
+    start()
+
+
+def start():
     game: Game = Game(640, 480)
     game.run_game()
 
