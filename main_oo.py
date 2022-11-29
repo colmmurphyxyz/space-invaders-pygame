@@ -1,5 +1,6 @@
 import sys
 import pygame
+from typing import Optional
 
 
 class Game(object):
@@ -12,11 +13,12 @@ class Game(object):
 
         self._screen = pygame.display.set_mode(self._size)
         self._ship_view = pygame.image.load("sprite_ship.png")
-        self._bullet_view = pygame.image.load("o.png")
+        self._player_bullet_view = pygame.image.load("sprite_player_bullet.png")
+        self._alien_bullet_view = pygame.image.load("sprite_alien_bullet.png")
+        self._player_bullet: Optional[BulletState] = None
+        self._alien_bullets: list[BulletState] = []
         self._ship_model = ShipState(self._width // 2, self._height - self._ship_view.get_height(),
                                      self._width - self._ship_view.get_width())
-
-        self._bullets: list[BulletState] = []
 
     def run_game(self):
         while True:
@@ -31,22 +33,25 @@ class Game(object):
                         # self._ship_model.handle_move_right()
                         self._ship_model.ship_change = 1
                     if event.key == pygame.K_SPACE:
-                        # fire a bullet
-                        self._bullets.append(BulletState(
-                            self._ship_model.x + self._ship_view.get_width() // 2 - self._bullet_view.get_width() // 2,
-                            self._ship_model.y - self._bullet_view.get_height())
-                        )
+                        # if the player has no bullet on-screen, fire a bullet
+                        if self._player_bullet is None:
+                            self._player_bullet = BulletState(
+                                self._ship_model.x + self._ship_view.get_width() // 2
+                                - self._player_bullet_view.get_width() // 2,
+                                self._ship_model.y - self._player_bullet_view.get_height()
+                            )
                 if event.type == pygame.KEYUP:
                     self._ship_model.ship_change = 0
 
             self._screen.fill(self._colors["black"])
             self._ship_model.handle_move()
             # update bullet position, remove them if they are off screen, then draw them to the screen
-            for bullet in self._bullets:
-                bullet.handle_move()
-                if bullet.y < 0 - self._bullet_view.get_height():
-                    self._bullets.remove(bullet)
-                self._screen.blit(self._bullet_view, bullet.coords)
+            if self._player_bullet is not None:
+                self._player_bullet.handle_move()
+                self._screen.blit(self._player_bullet_view, self._player_bullet.coords)
+                if self._player_bullet.y < -self._player_bullet_view.get_height():
+                    self._player_bullet = None
+            # draw the ship
             self._screen.blit(self._ship_view, self._ship_model.coords)
             pygame.display.flip()
 
