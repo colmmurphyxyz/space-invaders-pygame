@@ -6,6 +6,7 @@
 import sys
 import pygame
 from typing import Optional
+from random import random
 
 
 class GameObjectState(object):
@@ -104,7 +105,9 @@ class Game(object):
                                 - self._player_bullet_view.get_width() // 2,
                                 self._ship_model.y - self._player_bullet_view.get_height(),
                                 self._player_bullet_view.get_width(),
-                                self._player_bullet_view.get_height()
+                                self._player_bullet_view.get_height(),
+                                speed=
+                                -0.4
                             )
                 if event.type == pygame.KEYUP:
                     self._ship_model.ship_change = 0
@@ -135,6 +138,13 @@ class Game(object):
                 # if an alien is at the edge of the screen
                 if alien.x not in range(5, self._screen.get_width() - self._alien_view.get_width()):
                     move_aliens_down = True
+                # sometimes, an alien will fire a bullet at the player
+                # the aliens are kind, they will only have at most 6 bullets in the air at any time
+                if random() < 0.00004 and len(self._alien_bullets) < 7:
+                    self._alien_bullets.append(BulletState(
+                        alien.x, alien.y, self._alien_bullet_view.get_width(), self._alien_bullet_view.get_height(), 0.3
+                    ))
+
             # if any alien is at the edge of the screen, move all aliens down and change their direction
             if move_aliens_down:
                 for alien in self._aliens:
@@ -147,6 +157,14 @@ class Game(object):
                 self._screen.blit(self._player_bullet_view, self._player_bullet.coords)
                 if self._player_bullet.y < -self._player_bullet_view.get_height():
                     self._player_bullet = None
+            # update alien bullets, if one of them is in contact with the ship, player loses
+            for alien_bullet in self._alien_bullets:
+                alien_bullet.handle_move()
+                if alien_bullet.collides_with(self._ship_model):
+                    self._game_over()
+                self._screen.blit(self._alien_bullet_view, alien_bullet.coords)
+                if alien_bullet.y > (self._screen.get_height() - self._alien_bullet_view.get_height()):
+                    self._alien_bullets.remove(alien_bullet)
             # draw the ship
             self._ship_model.handle_move()
             self._screen.blit(self._ship_view, self._ship_model.coords)
@@ -200,11 +218,12 @@ class Game(object):
 
 
 class BulletState(GameObjectState):
-    def __init__(self, xpos: int, ypos: int, width: int, height: int):
+    def __init__(self, xpos: int, ypos: int, width: int, height: int, speed):
         super().__init__(xpos, ypos, width, height)
+        self._speed = speed
 
     def handle_move(self):
-        self._y -= 0.4
+        self._y += self._speed
 
 
 class AlienState(GameObjectState):
