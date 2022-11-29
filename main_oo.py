@@ -12,7 +12,11 @@ class Game(object):
 
         self._screen = pygame.display.set_mode(self._size)
         self._ship_view = pygame.image.load("sprite_ship.png")
-        self._ship_model = ShipState(160, 120, self._width - self._ship_view.get_width())
+        self._bullet_view = pygame.image.load("o.png")
+        self._ship_model = ShipState(self._width // 2, self._height - self._ship_view.get_height(),
+                                     self._width - self._ship_view.get_width())
+
+        self._bullets: list[BulletState] = []
 
     def run_game(self):
         while True:
@@ -26,13 +30,46 @@ class Game(object):
                     if event.key == pygame.K_RIGHT:
                         # self._ship_model.handle_move_right()
                         self._ship_model.ship_change = 1
+                    if event.key == pygame.K_SPACE:
+                        # fire a bullet
+                        self._bullets.append(BulletState(
+                            self._ship_model.x + self._ship_view.get_width() // 2 - self._bullet_view.get_width() // 2,
+                            self._ship_model.y - self._bullet_view.get_height())
+                        )
                 if event.type == pygame.KEYUP:
                     self._ship_model.ship_change = 0
 
-            self._ship_model.handle_move()
             self._screen.fill(self._colors["black"])
-            self._screen.blit(self._ship_view, (self._ship_model.x, self._ship_model.y))
+            self._ship_model.handle_move()
+            # update bullet position, remove them if they are off screen, then draw them to the screen
+            for bullet in self._bullets:
+                bullet.handle_move()
+                if bullet.y < 0 - self._bullet_view.get_height():
+                    self._bullets.remove(bullet)
+                self._screen.blit(self._bullet_view, bullet.coords)
+            self._screen.blit(self._ship_view, self._ship_model.coords)
             pygame.display.flip()
+
+
+class BulletState(object):
+    def __init__(self, xpos: int, ypos: int):
+        self._x = xpos
+        self._y = ypos
+
+    def handle_move(self):
+        self._y -= 0.2
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def coords(self):
+        return self._x, self._y
 
 
 class ShipState(object):
@@ -49,6 +86,10 @@ class ShipState(object):
     @property
     def y(self):
         return self._y
+
+    @property
+    def coords(self):
+        return self._x, self._y
 
     def handle_move(self):
         if self._x + self.ship_change in range(0, self.max_x):
