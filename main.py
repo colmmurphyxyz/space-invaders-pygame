@@ -2,12 +2,10 @@
 # Student no. 121356486
 # sprites taken from https://opengameart.org/content/pixel-space-invaders
 # font taken from https://www.1001fonts.com/joystix-font.html
-import datetime
 import sys
 import pygame
 from typing import Optional
 from random import random
-import time
 
 
 class GameObjectState(object):
@@ -162,9 +160,12 @@ class Game(object):
             # if any alien is at the edge of the screen, move all aliens down and change their direction
             if move_aliens_down:
                 for alien in self._aliens:
-                    alien.move_down(self._alien_view.get_height() // 8)
+                    alien.move_down()
                     alien.change_direction()
-                    alien.handle_move()
+                    # move the aliens away from the edge of the screen to ensure they don't move down again on the next frame
+                    for i in range(10):
+                        alien.handle_move()
+                move_aliens_down = False
             # update bullet position, remove them if they are off-screen, then draw them to the screen
             if self._player_bullet is not None:
                 self._player_bullet.handle_move()
@@ -263,8 +264,8 @@ class AlienState(GameObjectState):
     def change_direction(self):
         self._xchange = self._xchange * -1
 
-    def move_down(self, ychange: int):
-        self._y += ychange
+    def move_down(self):
+        self._y += self._height
 
 
 class ShipState(GameObjectState):
