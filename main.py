@@ -11,12 +11,18 @@ import time
 
 
 class GameObjectState(object):
+    """
+    a class with fields for current coordinates, and height/width of a game object
+    i found that i had these fields/properties in most of my classes so i decided to abstract it into its own class to
+    improve code readability and
+    """
     def __init__(self, xpos, ypos, width, height):
         self._x = xpos
         self._y = ypos
         self._width = width
         self._height = height
-
+    # x, y, width and height properties have public getters, but private setters, this ensures that the location
+    # and size of a game object cannot be modified in an unknown way
     @property
     def x(self):
         return self._x
@@ -38,7 +44,7 @@ class GameObjectState(object):
         return self._x, self._y
 
     def collides_with(self, other: "GameObjectState") -> bool:
-        """Returns True if two game objects are overlapping each other"""
+        """Returns True if two game objects are overlapping each other, False if they don't"""
         if (self.x < other.x + other.width and
                 self.x + self.width > other.x and
                 self.y < other.y + other.height and
@@ -88,11 +94,13 @@ class Game(object):
 
     def run_game(self):
         fps_interval: float = 1000.0 / 750.0
+        # main game loop
         while True:
             then = pygame.time.get_ticks()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit(0)
+                # input handler
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         # self._ship_model.handle_move_left()
@@ -109,8 +117,7 @@ class Game(object):
                                 self._ship_model.y - self._player_bullet_view.get_height(),
                                 self._player_bullet_view.get_width(),
                                 self._player_bullet_view.get_height(),
-                                speed=
-                                -0.4
+                                speed=-0.4
                             )
                 if event.type == pygame.KEYUP:
                     self._ship_model.ship_change = 0
@@ -129,6 +136,7 @@ class Game(object):
                     # player will get more points if the alien is far away from the ship
                     self._aliens.remove(alien)
                     self._player_bullet = None
+                    # aliens will award more points when killed if they are further away from the player, as they are harder to hit
                     points = (self._screen.get_height() - alien.y) // 10
                     # round down to the nearest 10
                     points = (points // 10) * 10
@@ -157,7 +165,7 @@ class Game(object):
                     alien.move_down(self._alien_view.get_height() // 8)
                     alien.change_direction()
                     alien.handle_move()
-            # update bullet position, remove them if they are off screen, then draw them to the screen
+            # update bullet position, remove them if they are off-screen, then draw them to the screen
             if self._player_bullet is not None:
                 self._player_bullet.handle_move()
                 self._screen.blit(self._player_bullet_view, self._player_bullet.coords)
@@ -188,11 +196,16 @@ class Game(object):
 
     # code from https://www.geeksforgeeks.org/python-display-text-to-pygame-window/
     def _show_end_screen(self, message: str):
+        """
+        show a black screen with text and wait for input from the user, wither to restart the game, or exit
+        :param message:
+        :return:
+        """
         self._screen.fill(self._colors["black"])
         font_large = pygame.font.Font("joystix_monospace.ttf", 64)
         text = font_large.render(message, True, self._colors["white"])
         text_rect = text.get_rect()
-        # place text on the center of the screen
+        # place text on the centre of the screen
         text_rect.center = (self._screen.get_width() // 2, self._screen.get_height() // 2)
         # render final score
         score = f"Final score: {self._score}"
@@ -277,12 +290,20 @@ class ShipState(GameObjectState):
 
 
 def main():
+    """
+    initialise pygame and then run the game
+    :return:
+    """
     pygame.init()
     pygame.display.set_caption("Space Invaders")
     start()
 
 
 def start():
+    """
+    start the game
+    :return:
+    """
     game: Game = Game(640, 480)
     game.run_game()
 
